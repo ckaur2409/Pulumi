@@ -21,7 +21,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='language.proto',
   package='pulumirpc',
   syntax='proto3',
-  serialized_pb=_b('\n\x0elanguage.proto\x12\tpulumirpc\x1a\x0cplugin.proto\x1a\x1bgoogle/protobuf/empty.proto\"J\n\x19GetRequiredPluginsRequest\x12\x0f\n\x07project\x18\x01 \x01(\t\x12\x0b\n\x03pwd\x18\x02 \x01(\t\x12\x0f\n\x07program\x18\x03 \x01(\t\"J\n\x1aGetRequiredPluginsResponse\x12,\n\x07plugins\x18\x01 \x03(\x0b\x32\x1b.pulumirpc.PluginDependency\"\xf5\x01\n\nRunRequest\x12\x0f\n\x07project\x18\x01 \x01(\t\x12\r\n\x05stack\x18\x02 \x01(\t\x12\x0b\n\x03pwd\x18\x03 \x01(\t\x12\x0f\n\x07program\x18\x04 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x05 \x03(\t\x12\x31\n\x06\x63onfig\x18\x06 \x03(\x0b\x32!.pulumirpc.RunRequest.ConfigEntry\x12\x0e\n\x06\x64ryRun\x18\x07 \x01(\x08\x12\x10\n\x08parallel\x18\x08 \x01(\x05\x12\x17\n\x0fmonitor_address\x18\t \x01(\t\x1a-\n\x0b\x43onfigEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x1c\n\x0bRunResponse\x12\r\n\x05\x65rror\x18\x01 \x01(\t2\xf0\x01\n\x0fLanguageRuntime\x12\x63\n\x12GetRequiredPlugins\x12$.pulumirpc.GetRequiredPluginsRequest\x1a%.pulumirpc.GetRequiredPluginsResponse\"\x00\x12\x36\n\x03Run\x12\x15.pulumirpc.RunRequest\x1a\x16.pulumirpc.RunResponse\"\x00\x12@\n\rGetPluginInfo\x12\x16.google.protobuf.Empty\x1a\x15.pulumirpc.PluginInfo\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\x0elanguage.proto\x12\tpulumirpc\x1a\x0cplugin.proto\x1a\x1bgoogle/protobuf/empty.proto\"J\n\x19GetRequiredPluginsRequest\x12\x0f\n\x07project\x18\x01 \x01(\t\x12\x0b\n\x03pwd\x18\x02 \x01(\t\x12\x0f\n\x07program\x18\x03 \x01(\t\"J\n\x1aGetRequiredPluginsResponse\x12,\n\x07plugins\x18\x01 \x03(\x0b\x32\x1b.pulumirpc.PluginDependency\"\xf5\x01\n\nRunRequest\x12\x0f\n\x07project\x18\x01 \x01(\t\x12\r\n\x05stack\x18\x02 \x01(\t\x12\x0b\n\x03pwd\x18\x03 \x01(\t\x12\x0f\n\x07program\x18\x04 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x05 \x03(\t\x12\x31\n\x06\x63onfig\x18\x06 \x03(\x0b\x32!.pulumirpc.RunRequest.ConfigEntry\x12\x0e\n\x06\x64ryRun\x18\x07 \x01(\x08\x12\x10\n\x08parallel\x18\x08 \x01(\x05\x12\x17\n\x0fmonitor_address\x18\t \x01(\t\x1a-\n\x0b\x43onfigEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x1c\n\x0bRunResponse\x12\r\n\x05\x65rror\x18\x01 \x01(\t\"\'\n\x16PrepareProjectResponse\x12\r\n\x05\x65rror\x18\x01 \x01(\t2\xbf\x02\n\x0fLanguageRuntime\x12\x63\n\x12GetRequiredPlugins\x12$.pulumirpc.GetRequiredPluginsRequest\x1a%.pulumirpc.GetRequiredPluginsResponse\"\x00\x12M\n\x0ePrepareProject\x12\x16.google.protobuf.Empty\x1a!.pulumirpc.PrepareProjectResponse\"\x00\x12\x36\n\x03Run\x12\x15.pulumirpc.RunRequest\x1a\x16.pulumirpc.RunResponse\"\x00\x12@\n\rGetPluginInfo\x12\x16.google.protobuf.Empty\x1a\x15.pulumirpc.PluginInfo\"\x00\x62\x06proto3')
   ,
   dependencies=[plugin__pb2.DESCRIPTOR,google_dot_protobuf_dot_empty__pb2.DESCRIPTOR,])
 
@@ -258,6 +258,37 @@ _RUNRESPONSE = _descriptor.Descriptor(
   serialized_end=500,
 )
 
+
+_PREPAREPROJECTRESPONSE = _descriptor.Descriptor(
+  name='PrepareProjectResponse',
+  full_name='pulumirpc.PrepareProjectResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='error', full_name='pulumirpc.PrepareProjectResponse.error', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=502,
+  serialized_end=541,
+)
+
 _GETREQUIREDPLUGINSRESPONSE.fields_by_name['plugins'].message_type = plugin__pb2._PLUGINDEPENDENCY
 _RUNREQUEST_CONFIGENTRY.containing_type = _RUNREQUEST
 _RUNREQUEST.fields_by_name['config'].message_type = _RUNREQUEST_CONFIGENTRY
@@ -265,6 +296,7 @@ DESCRIPTOR.message_types_by_name['GetRequiredPluginsRequest'] = _GETREQUIREDPLUG
 DESCRIPTOR.message_types_by_name['GetRequiredPluginsResponse'] = _GETREQUIREDPLUGINSRESPONSE
 DESCRIPTOR.message_types_by_name['RunRequest'] = _RUNREQUEST
 DESCRIPTOR.message_types_by_name['RunResponse'] = _RUNRESPONSE
+DESCRIPTOR.message_types_by_name['PrepareProjectResponse'] = _PREPAREPROJECTRESPONSE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 GetRequiredPluginsRequest = _reflection.GeneratedProtocolMessageType('GetRequiredPluginsRequest', (_message.Message,), dict(
@@ -303,6 +335,13 @@ RunResponse = _reflection.GeneratedProtocolMessageType('RunResponse', (_message.
   ))
 _sym_db.RegisterMessage(RunResponse)
 
+PrepareProjectResponse = _reflection.GeneratedProtocolMessageType('PrepareProjectResponse', (_message.Message,), dict(
+  DESCRIPTOR = _PREPAREPROJECTRESPONSE,
+  __module__ = 'language_pb2'
+  # @@protoc_insertion_point(class_scope:pulumirpc.PrepareProjectResponse)
+  ))
+_sym_db.RegisterMessage(PrepareProjectResponse)
+
 
 _RUNREQUEST_CONFIGENTRY.has_options = True
 _RUNREQUEST_CONFIGENTRY._options = _descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001'))
@@ -313,8 +352,8 @@ _LANGUAGERUNTIME = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   options=None,
-  serialized_start=503,
-  serialized_end=743,
+  serialized_start=544,
+  serialized_end=863,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetRequiredPlugins',
@@ -326,9 +365,18 @@ _LANGUAGERUNTIME = _descriptor.ServiceDescriptor(
     options=None,
   ),
   _descriptor.MethodDescriptor(
+    name='PrepareProject',
+    full_name='pulumirpc.LanguageRuntime.PrepareProject',
+    index=1,
+    containing_service=None,
+    input_type=google_dot_protobuf_dot_empty__pb2._EMPTY,
+    output_type=_PREPAREPROJECTRESPONSE,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
     name='Run',
     full_name='pulumirpc.LanguageRuntime.Run',
-    index=1,
+    index=2,
     containing_service=None,
     input_type=_RUNREQUEST,
     output_type=_RUNRESPONSE,
@@ -337,7 +385,7 @@ _LANGUAGERUNTIME = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetPluginInfo',
     full_name='pulumirpc.LanguageRuntime.GetPluginInfo',
-    index=2,
+    index=3,
     containing_service=None,
     input_type=google_dot_protobuf_dot_empty__pb2._EMPTY,
     output_type=plugin__pb2._PLUGININFO,

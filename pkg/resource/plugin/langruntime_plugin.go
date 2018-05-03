@@ -3,6 +3,7 @@
 package plugin
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/blang/semver"
@@ -105,6 +106,22 @@ func (h *langhost) GetRequiredPlugins(info ProgInfo) ([]workspace.PluginInfo, er
 		h.runtime, proj, info.Pwd, info.Program, len(results))
 	return results, nil
 
+}
+
+// PrepareProject prepares the project before it is run; e.g. running `npm install` for nodejs.
+func (h *langhost) PrepareProject() (string, error) {
+	fmt.Printf("JVP: langhost[%v].PepareProject() executing\n", h.runtime)
+	glog.V(7).Infof("langhost[%v].PepareProject() executing", h.runtime)
+	resp, err := h.client.PrepareProject(h.ctx.Request(), &pbempty.Empty{})
+	if err != nil {
+		rpcError := rpcerror.Convert(err)
+		glog.V(7).Infof("langhost[%v].PepareProject() failed: err=%v", h.runtime, rpcError)
+		return "", rpcError
+	}
+
+	progerr := resp.GetError()
+	glog.V(7).Infof("langhost[%v].PepareProject() success: progerr=%v", progerr)
+	return progerr, nil
 }
 
 // Run executes a program in the language runtime for planning or deployment purposes.  If info.DryRun is true,

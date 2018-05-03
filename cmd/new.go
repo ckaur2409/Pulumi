@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/pulumi/pulumi/pkg/backend/cloud"
+	"github.com/pulumi/pulumi/pkg/engine"
 	"github.com/pulumi/pulumi/pkg/workspace"
 
 	"github.com/pkg/errors"
@@ -117,7 +118,18 @@ func newNewCmd() *cobra.Command {
 			}
 
 			fmt.Println("Your project was created successfully.")
-			return nil
+
+			// // Attempt to run npm install, wiring up stdout/stderr directly.
+			// //var errResult string
+			// c := exec.Command("blahbalh", "install")
+			// c.Stdout = os.Stdout
+			// c.Stderr = os.Stderr
+			// if err = c.Run(); err != nil {
+			// 	return err
+			// }
+			//return nil
+
+			return prepareProject()
 		}),
 	}
 
@@ -137,6 +149,31 @@ func newNewCmd() *cobra.Command {
 		"Allows offline use of cached templates without making any network requests")
 
 	return cmd
+}
+
+func prepareProject() error {
+	proj, root, err := readProject()
+	if err != nil {
+		return err
+	}
+
+	projinfo := &engine.Projinfo{Proj: proj, Root: root}
+	_, _, ctx, err := engine.ProjectInfoContext(projinfo, nil, nil, cmdutil.Diag(), nil)
+	if err != nil {
+		return err
+	}
+
+	lang, err := ctx.Host.LanguageRuntime(proj.Runtime)
+	if err != nil {
+		return errors.Wrapf(err, "failed to load language plugin %s", proj.Runtime)
+	}
+
+	_, err = lang.PrepareProject()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getCloudURL(cloudURL string) string {

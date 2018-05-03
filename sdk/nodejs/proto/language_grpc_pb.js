@@ -53,6 +53,17 @@ function deserialize_pulumirpc_PluginInfo(buffer_arg) {
   return plugin_pb.PluginInfo.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
+function serialize_pulumirpc_PrepareProjectResponse(arg) {
+  if (!(arg instanceof language_pb.PrepareProjectResponse)) {
+    throw new Error('Expected argument of type pulumirpc.PrepareProjectResponse');
+  }
+  return new Buffer(arg.serializeBinary());
+}
+
+function deserialize_pulumirpc_PrepareProjectResponse(buffer_arg) {
+  return language_pb.PrepareProjectResponse.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
 function serialize_pulumirpc_RunRequest(arg) {
   if (!(arg instanceof language_pb.RunRequest)) {
     throw new Error('Expected argument of type pulumirpc.RunRequest');
@@ -90,6 +101,18 @@ var LanguageRuntimeService = exports.LanguageRuntimeService = {
     requestDeserialize: deserialize_pulumirpc_GetRequiredPluginsRequest,
     responseSerialize: serialize_pulumirpc_GetRequiredPluginsResponse,
     responseDeserialize: deserialize_pulumirpc_GetRequiredPluginsResponse,
+  },
+  // PrepareProject runs command necessary to prepare the project before it is run, such as `npm install`.
+  prepareProject: {
+    path: '/pulumirpc.LanguageRuntime/PrepareProject',
+    requestStream: false,
+    responseStream: false,
+    requestType: google_protobuf_empty_pb.Empty,
+    responseType: language_pb.PrepareProjectResponse,
+    requestSerialize: serialize_google_protobuf_Empty,
+    requestDeserialize: deserialize_google_protobuf_Empty,
+    responseSerialize: serialize_pulumirpc_PrepareProjectResponse,
+    responseDeserialize: deserialize_pulumirpc_PrepareProjectResponse,
   },
   // Run executes a program and returns its result.
   run: {

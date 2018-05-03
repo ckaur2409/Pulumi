@@ -22,6 +22,11 @@ class LanguageRuntimeStub(object):
         request_serializer=language__pb2.GetRequiredPluginsRequest.SerializeToString,
         response_deserializer=language__pb2.GetRequiredPluginsResponse.FromString,
         )
+    self.PrepareProject = channel.unary_unary(
+        '/pulumirpc.LanguageRuntime/PrepareProject',
+        request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+        response_deserializer=language__pb2.PrepareProjectResponse.FromString,
+        )
     self.Run = channel.unary_unary(
         '/pulumirpc.LanguageRuntime/Run',
         request_serializer=language__pb2.RunRequest.SerializeToString,
@@ -41,6 +46,13 @@ class LanguageRuntimeServicer(object):
 
   def GetRequiredPlugins(self, request, context):
     """GetRequiredPlugins computes the complete set of anticipated plugins required by a program.
+    """
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def PrepareProject(self, request, context):
+    """PrepareProject runs command necessary to prepare the project before it is run, such as `npm install`.
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
@@ -67,6 +79,11 @@ def add_LanguageRuntimeServicer_to_server(servicer, server):
           servicer.GetRequiredPlugins,
           request_deserializer=language__pb2.GetRequiredPluginsRequest.FromString,
           response_serializer=language__pb2.GetRequiredPluginsResponse.SerializeToString,
+      ),
+      'PrepareProject': grpc.unary_unary_rpc_method_handler(
+          servicer.PrepareProject,
+          request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+          response_serializer=language__pb2.PrepareProjectResponse.SerializeToString,
       ),
       'Run': grpc.unary_unary_rpc_method_handler(
           servicer.Run,

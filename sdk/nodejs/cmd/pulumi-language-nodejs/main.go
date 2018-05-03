@@ -243,6 +243,18 @@ func getPluginVersion(info packageJSON) (string, error) {
 	return version, nil
 }
 
+// RPC endpoint for PrepareProject
+func (host *nodeLanguageHost) PrepareProject(ctx context.Context, req *pbempty.Empty) (*pulumirpc.PrepareProjectResponse, error) {
+	var errResult string
+	cmd := exec.Command("npm", "install")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		errResult = err.Error()
+	}
+	return &pulumirpc.PrepareProjectResponse{Error: errResult}, nil
+}
+
 // RPC endpoint for LanguageRuntimeServer::Run
 func (host *nodeLanguageHost) Run(ctx context.Context, req *pulumirpc.RunRequest) (*pulumirpc.RunResponse, error) {
 	args := host.constructArguments(req)

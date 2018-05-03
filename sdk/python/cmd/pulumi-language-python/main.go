@@ -128,6 +128,12 @@ func (host *pythonLanguageHost) GetRequiredPlugins(ctx context.Context,
 	return &pulumirpc.GetRequiredPluginsResponse{}, nil
 }
 
+// RPC endpoint for PrepareProject
+func (host *pythonLanguageHost) PrepareProject(ctx context.Context, req *pbempty.Empty) (*pulumirpc.PrepareProjectResponse, error) {
+	fmt.Println("PrepareProject: python hello world")
+	return &pulumirpc.PrepareProjectResponse{Error: ""}, nil
+}
+
 // RPC endpoint for LanguageRuntimeServer::Run
 func (host *pythonLanguageHost) Run(ctx context.Context, req *pulumirpc.RunRequest) (*pulumirpc.RunResponse, error) {
 	args := host.constructArguments(req)

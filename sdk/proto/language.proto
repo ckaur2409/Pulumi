@@ -12,6 +12,8 @@ package pulumirpc;
 service LanguageRuntime {
     // GetRequiredPlugins computes the complete set of anticipated plugins required by a program.
     rpc GetRequiredPlugins(GetRequiredPluginsRequest) returns (GetRequiredPluginsResponse) {}
+    // PrepareProject runs commands necessary to prepare the project before it is run, such as `npm install`.
+    rpc PrepareProject(google.protobuf.Empty) returns (PrepareProjectResponse) {}
     // Run executes a program and returns its result.
     rpc Run(RunRequest) returns (RunResponse) {}
     // GetPluginInfo returns generic information about this plugin, like its version.
@@ -43,5 +45,10 @@ message RunRequest {
 
 // RunResponse is the response back from the interpreter/source back to the monitor.
 message RunResponse {
+    string error = 1; // an unhandled error if any occurred.
+}
+
+// PrepareProjectResponse is the response back from running PrepareProjectResponse.
+message PrepareProjectResponse {
     string error = 1; // an unhandled error if any occurred.
 }
