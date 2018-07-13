@@ -15,9 +15,8 @@
 package cmd
 
 import (
-	"bufio"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -26,7 +25,6 @@ import (
 	"unicode"
 
 	"github.com/pulumi/pulumi/pkg/backend"
-	"github.com/pulumi/pulumi/pkg/backend/cloud"
 	"github.com/pulumi/pulumi/pkg/resource/config"
 	"github.com/pulumi/pulumi/pkg/tokens"
 	"github.com/pulumi/pulumi/pkg/workspace"
@@ -35,13 +33,12 @@ import (
 	"github.com/pulumi/pulumi/pkg/diag/colors"
 
 	"github.com/pulumi/pulumi/pkg/util/cmdutil"
+	"github.com/pulumi/pulumi/pkg/util/contract"
 	"github.com/spf13/cobra"
 
 	survey "gopkg.in/AlecAivazis/survey.v1"
 	surveycore "gopkg.in/AlecAivazis/survey.v1/core"
 )
-
-const defaultURLEnvVar = "PULUMI_TEMPLATE_API"
 
 func newNewCmd() *cobra.Command {
 	var cloudURL string
@@ -95,11 +92,6 @@ func newNewCmd() *cobra.Command {
 				}
 			}
 
-			releases, err := cloud.New(cmdutil.Diag(), getCloudURL(cloudURL))
-			if err != nil {
-				return errors.Wrap(err, "creating API client")
-			}
-
 			// If we're going to be creating a stack, get the current backend, which
 			// will kick off the login flow (if not already logged-in).
 			var b backend.Backend
@@ -115,39 +107,61 @@ func newNewCmd() *cobra.Command {
 			if len(args) > 0 {
 				templateName = strings.ToLower(args[0])
 			} else {
-				if templateName, err = chooseTemplate(releases, offline, displayOpts); err != nil {
+				if templateName, err = chooseTemplate(offline, displayOpts); err != nil {
 					return err
 				}
 			}
 
-			// Download and install the template to the local template cache.
-			if !offline {
-				var tarball io.ReadCloser
-				source := releases.CloudURL()
-
-				if tarball, err = releases.DownloadTemplate(commandContext(), templateName, false, displayOpts); err != nil {
-					message := ""
-					// If the local template is available locally, provide a nicer error message.
-					if localTemplates, localErr := workspace.ListLocalTemplates(); localErr == nil && len(localTemplates) > 0 {
-						_, m := templateArrayToStringArrayAndMap(localTemplates)
-						if _, ok := m[templateName]; ok {
-							message = fmt.Sprintf(
-								"; rerun the command and pass --offline to use locally cached template '%s'",
-								templateName)
-						}
-					}
-
-					return errors.Wrapf(err, "downloading template '%s' from %s%s", templateName, source, message)
-				}
-				if err = workspace.InstallTemplate(templateName, tarball); err != nil {
-					return errors.Wrapf(err, "installing template '%s' from %s", templateName, source)
-				}
-			}
-
-			// Load the local template.
 			var template workspace.Template
-			if template, err = workspace.LoadLocalTemplate(templateName); err != nil {
-				return errors.Wrapf(err, "template '%s' not found", templateName)
+
+			if strings.HasPrefix(templateName, "https://") {
+				if offline {
+					return errors.Errorf("cannot use %s offline", templateName)
+				}
+
+				// Create a temp dir.
+				var temp string
+				if temp, err = ioutil.TempDir("", "pulumi-template"); err != nil {
+					return err
+				}
+				defer contract.IgnoreError(os.RemoveAll(temp))
+
+				var fullPath string
+				if fullPath, err = workspace.RetrieveTemplate(templateName, temp); err != nil {
+					return err
+				}
+
+				// Load the template.
+				template, err = workspace.LoadTemplate(fullPath)
+				if err != nil {
+					return err
+				}
+			} else {
+				// Download and install the template to the local template cache.
+				if !offline {
+					// Clone or Update the templates.
+					// TODO only do the CloneOrUpdatePulumiTemplates operation once. Right now we're doing it for both
+					// chooseTemplate and here.
+					if err = workspace.CloneOrUpdatePulumiTemplates(); err != nil {
+						message := ""
+						// If the local template is available locally, provide a nicer error message.
+						if localTemplates, localErr := workspace.ListLocalTemplates(); localErr == nil && len(localTemplates) > 0 {
+							_, m := templateArrayToStringArrayAndMap(localTemplates)
+							if _, ok := m[templateName]; ok {
+								message = fmt.Sprintf(
+									"; rerun the command and pass --offline to use locally cached template '%s'",
+									templateName)
+							}
+						}
+
+						return errors.Wrapf(err, "cloning templates%s", message)
+					}
+				}
+
+				// Load the local template.
+				if template, err = workspace.LoadLocalTemplate(templateName); err != nil {
+					return errors.Wrapf(err, "template '%s' not found", templateName)
+				}
 			}
 
 			// Do a dry run, if we're not forcing files to be overwritten.
@@ -172,13 +186,19 @@ func newNewCmd() *cobra.Command {
 			// Prompt for the project name, if it wasn't already specified.
 			if name == "" {
 				defaultValue := workspace.ValueOrSanitizedDefaultProjectName(name, filepath.Base(cwd))
-				name = promptForValue(yes, "project name", defaultValue, workspace.IsValidProjectName, displayOpts)
+				name, err = promptForValue(yes, "project name", defaultValue, false, workspace.IsValidProjectName, displayOpts)
+				if err != nil {
+					return err
+				}
 			}
 
 			// Prompt for the project description, if it wasn't already specified.
 			if description == "" {
 				defaultValue := workspace.ValueOrDefaultProjectDescription(description, template.Description)
-				description = promptForValue(yes, "project description", defaultValue, nil, displayOpts)
+				description, err = promptForValue(yes, "project description", defaultValue, false, nil, displayOpts)
+				if err != nil {
+					return err
+				}
 			}
 
 			// Actually copy the files.
@@ -197,7 +217,11 @@ func newNewCmd() *cobra.Command {
 				defaultValue := getDevStackName(name)
 
 				for {
-					stackName := promptForValue(yes, "stack name", defaultValue, nil, displayOpts)
+					var stackName string
+					stackName, err = promptForValue(yes, "stack name", defaultValue, false, nil, displayOpts)
+					if err != nil {
+						return err
+					}
 					stack, err = stackInit(b, stackName)
 					if err != nil {
 						if !yes {
@@ -224,7 +248,14 @@ func newNewCmd() *cobra.Command {
 
 					c := make(config.Map)
 					for _, k := range keys {
-						value := promptForValue(yes, k.String(), template.Config[k], nil, displayOpts)
+						// TODO show description.
+						defaultValue := template.Config[k].Default
+						secret := template.Config[k].Secret
+						var value string
+						value, err = promptForValue(yes, k.String(), defaultValue, secret, nil, displayOpts)
+						if err != nil {
+							return err
+						}
 						c[k] = config.NewValue(value)
 					}
 
@@ -237,7 +268,7 @@ func newNewCmd() *cobra.Command {
 			}
 
 			// Install dependencies.
-			if !generateOnly && template.InstallDependencies {
+			if !generateOnly {
 				fmt.Println("Installing dependencies...")
 				err = installDependencies()
 				if err != nil {
@@ -362,24 +393,8 @@ func installDependencies() error {
 	return nil
 }
 
-// getCloudURL returns the URL used to download the template.
-func getCloudURL(cloudURL string) string {
-	// If we have a cloud URL, just return it.
-	if cloudURL != "" {
-		return cloudURL
-	}
-
-	// Otherwise, respect the PULUMI_TEMPLATE_API override.
-	if fromEnv := os.Getenv(defaultURLEnvVar); fromEnv != "" {
-		return fromEnv
-	}
-
-	// Otherwise, use the default.
-	return cloud.DefaultURL()
-}
-
 // chooseTemplate will prompt the user to choose amongst the available templates.
-func chooseTemplate(backend cloud.Backend, offline bool, opts backend.DisplayOptions) (string, error) {
+func chooseTemplate(offline bool, opts backend.DisplayOptions) (string, error) {
 	const chooseTemplateErr = "no template selected; please use `pulumi new` to choose one"
 	if !cmdutil.Interactive() {
 		return "", errors.New(chooseTemplateErr)
@@ -389,7 +404,7 @@ func chooseTemplate(backend cloud.Backend, offline bool, opts backend.DisplayOpt
 	var err error
 
 	if !offline {
-		if templates, err = backend.ListTemplates(commandContext()); err != nil {
+		if templates, err = workspace.ListTemplates(); err != nil {
 			message := "could not fetch list of remote templates"
 
 			// If we couldn't fetch the list, see if there are any local templates
@@ -433,11 +448,11 @@ func chooseTemplate(backend cloud.Backend, offline bool, opts backend.DisplayOpt
 // when specified, it will be run to validate that value entered. An invalid value will result in an error
 // message followed by another prompt for the value.
 func promptForValue(
-	yes bool, prompt string, defaultValue string,
-	isValidFn func(value string) bool, opts backend.DisplayOptions) string {
+	yes bool, prompt string, defaultValue string, secret bool,
+	isValidFn func(value string) bool, opts backend.DisplayOptions) (string, error) {
 
 	if yes {
-		return defaultValue
+		return defaultValue, nil
 	}
 
 	for {
@@ -450,20 +465,32 @@ func promptForValue(
 		}
 		fmt.Print(prompt)
 
-		reader := bufio.NewReader(os.Stdin)
-		line, _ := reader.ReadString('\n')
-		value := strings.TrimSpace(line)
+		// Read the value.
+		var err error
+		var value string
+		if secret {
+			value, err = cmdutil.ReadConsoleNoEcho("")
+			if err != nil {
+				return "", err
+			}
+		} else {
+			value, err = cmdutil.ReadConsole("")
+			if err != nil {
+				return "", err
+			}
+		}
+		value = strings.TrimSpace(value)
 
 		if value != "" {
 			if isValidFn == nil || isValidFn(value) {
-				return value
+				return value, nil
 			}
 
 			// The value is invalid, let the user know and try again
 			fmt.Printf("Sorry, '%s' is not a valid %s.\n", value, prompt)
 			continue
 		}
-		return defaultValue
+		return defaultValue, nil
 	}
 }
 
