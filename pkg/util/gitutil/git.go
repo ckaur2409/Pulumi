@@ -102,12 +102,25 @@ func GitCloneOrPull(url string, path string) (*git.Repository, error) {
 	var repo *git.Repository
 	var err error
 
+	// JVP remove
+	// // Create empty repo.
+	// repo, err = git.PlainInit(path, false)
+	// if err != nil {
+	// 	if err == git.ErrRepositoryAlreadyExists {
+	// 		// TODO
+	// 	} else {
+	// 		return nil, err
+	// 	}
+	// }
+
 	// Attempt to clone the repo.
 	cloneOpts := &git.CloneOptions{
-		URL:   url,
-		Depth: 1,
+		URL: url,
+		// JVP uncomment
+		// Depth: 1,
 	}
 	repo, err = git.PlainClone(path, false, cloneOpts)
+
 	if err != nil {
 		// If the repo already exists, open it and pull.
 		if err == git.ErrRepositoryAlreadyExists {
@@ -122,7 +135,8 @@ func GitCloneOrPull(url string, path string) (*git.Repository, error) {
 			}
 
 			pullOpts := &git.PullOptions{
-				Depth: 1,
+				// JVP uncomment
+				// Depth: 1,
 				Force: true,
 			}
 			if err = w.Pull(pullOpts); err != nil && err != git.NoErrAlreadyUpToDate {
@@ -230,7 +244,10 @@ func ParseGitCheckoutOptionsSubDirectory(rawurl string, repo *git.Repository) (*
 				prefix := shortNameWithoutOrigin + "/"
 				if strings.HasPrefix(path, prefix) {
 					subDir := strings.TrimPrefix(path, prefix)
-					return &git.CheckoutOptions{Branch: ref}, strings.TrimSuffix(subDir, "/"), nil
+					return &git.CheckoutOptions{
+						Branch: plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", shortNameWithoutOrigin)),
+					}, strings.TrimSuffix(subDir, "/"), nil
+					//return &git.CheckoutOptions{Branch: ref}, strings.TrimSuffix(subDir, "/"), nil
 				}
 			}
 		}

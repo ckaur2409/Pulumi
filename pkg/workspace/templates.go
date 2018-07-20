@@ -112,15 +112,38 @@ func RetrieveTemplate(rawurl string, path string) (string, error) {
 		return "", err
 	}
 
+	// // JVP
+	// remote, err := repo.Remote("origin")
+	// if err != nil {
+	// 	return "", err
+	// }
+	// refs, err := remote.List(&git.ListOptions{})
+	// if err != nil {
+	// 	return "", err
+	// }
+	// for _, ref := range refs {
+	// 	fmt.Printf("JVP: ref: %s\n", ref)
+	// }
+
 	opts, subDirectory, err := gitutil.ParseGitCheckoutOptionsSubDirectory(rawurl, repo)
 	if err != nil {
 		return "", err
 	}
 
+	// JVP
+	fmt.Printf("JVP: Branch: %s\n", opts.Branch)
+
 	w, err := repo.Worktree()
 	if err != nil {
 		return "", err
 	}
+
+	// err = repo.Fetch(&git.FetchOptions{
+	// 	RefSpecs: []gitconfig.RefSpec{"refs/*:refs/*", "HEAD:refs/heads/HEAD"},
+	// })
+	// if err != nil {
+	// 	return "", err
+	// }
 
 	opts.Force = true
 	if err = w.Checkout(opts); err != nil {

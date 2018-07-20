@@ -33,7 +33,6 @@ import (
 	"github.com/pulumi/pulumi/pkg/diag/colors"
 
 	"github.com/pulumi/pulumi/pkg/util/cmdutil"
-	"github.com/pulumi/pulumi/pkg/util/contract"
 	"github.com/spf13/cobra"
 
 	survey "gopkg.in/AlecAivazis/survey.v1"
@@ -121,10 +120,12 @@ func newNewCmd() *cobra.Command {
 
 				// Create a temp dir.
 				var temp string
-				if temp, err = ioutil.TempDir("", "pulumi-template"); err != nil {
+				if temp, err = ioutil.TempDir("", "pulumi-template-"); err != nil {
 					return err
 				}
-				defer contract.IgnoreError(os.RemoveAll(temp))
+				// JVP uncomment
+				fmt.Printf("JVP: temp dir: %s\n", temp)
+				// defer contract.IgnoreError(os.RemoveAll(temp))
 
 				var fullPath string
 				if fullPath, err = workspace.RetrieveTemplate(templateName, temp); err != nil {
