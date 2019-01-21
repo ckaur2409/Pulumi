@@ -82,6 +82,9 @@ func (b *localBackend) newUpdate(stackName tokens.QName, proj *workspace.Project
 		return nil, errors.Wrap(err, "validating stack properties")
 	}
 
+	// TODO JVP this probably needs to be moved. First get the local stack, then merge these tags and save the stack
+	// then pass the stack along to this function, so we can pass the tags to getTarget.
+
 	// Construct the deployment target.
 	target, err := b.getTarget(stackName, tags)
 	if err != nil {
@@ -117,7 +120,7 @@ func (b *localBackend) getTarget(stackName tokens.QName,
 	if err != nil {
 		return nil, err
 	}
-	_, snapshot, _, err := b.getStack(stackName)
+	_, snapshot, _, _, err := b.getStack(stackName)
 	if err != nil {
 		return nil, err
 	}
@@ -130,36 +133,62 @@ func (b *localBackend) getTarget(stackName tokens.QName,
 	}, nil
 }
 
-func (b *localBackend) getStack(name tokens.QName) (config.Map, *deploy.Snapshot, string, error) {
+func (b *localBackend) getStack(
+	name tokens.QName) (config.Map, *deploy.Snapshot, string, map[apitype.StackTagName]string, error) {
+
 	if name == "" {
-		return nil, nil, "", errors.New("invalid empty stack name")
+		return nil, nil, "", nil, errors.New("invalid empty stack name")
 	}
 
 	file := b.stackPath(name)
 
 	chk, err := b.getCheckpoint(name)
 	if err != nil {
-		return nil, nil, file, errors.Wrap(err, "failed to load checkpoint")
+		return nil, nil, file, nil, errors.Wrap(err, "failed to load checkpoint")
 	}
 
 	// Materialize an actual snapshot object.
 	snapshot, err := stack.DeserializeCheckpoint(chk)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, nil, "", nil, err
 	}
 
 	// Ensure the snapshot passes verification before returning it, to catch bugs early.
 	if !DisableIntegrityChecking {
 		if verifyerr := snapshot.VerifyIntegrity(); verifyerr != nil {
-			return nil, nil, file,
+			return nil, nil, file, nil,
 				errors.Wrapf(verifyerr, "%s: snapshot integrity failure; refusing to use it", file)
 		}
 	}
 
-	return chk.Config, snapshot, file, nil
+	// Read the tags.
+	tags, err := b.getTags(name)
+	if err != nil {
+		return nil, nil, file, nil, errors.Wrap(err, "failed to load tags")
+	}
+
+	return chk.Config, snapshot, file, tags, nil
 }
 
-// GetCheckpoint loads a checkpoint file for the given stack in this project, from the current project workspace.
+// getTags loads the tags for a given stack.
+func (b *localBackend) getTags(stackName tokens.QName) (map[apitype.StackTagName]string, error) {
+	path := strings.TrimSuffix(b.stackPath(stackName), ".json") + ".tags.json"
+	bytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+	}
+
+	var tags map[apitype.StackTagName]string
+	if err := json.Unmarshal(bytes, &tags); err != nil {
+		return nil, err
+	}
+
+	return tags, nil
+}
+
+// getCheckpoint loads a checkpoint file for the given stack in this project, from the current project workspace.
 func (b *localBackend) getCheckpoint(stackName tokens.QName) (*apitype.CheckpointV2, error) {
 	chkpath := b.stackPath(stackName)
 	bytes, err := ioutil.ReadFile(chkpath)
@@ -171,7 +200,7 @@ func (b *localBackend) getCheckpoint(stackName tokens.QName) (*apitype.Checkpoin
 }
 
 func (b *localBackend) saveStack(name tokens.QName,
-	config map[config.Key]config.Value, snap *deploy.Snapshot) (string, error) {
+	config map[config.Key]config.Value, snap *deploy.Snapshot, tags map[apitype.StackTagName]string) (string, error) {
 	// Make a serializable stack and then use the encoder to encode it.
 	file := b.stackPath(name)
 	m, ext := encoding.Detect(file)
@@ -220,6 +249,22 @@ func (b *localBackend) saveStack(name tokens.QName,
 		}
 	}
 
+	// Now save the tags.
+	// TODO JVP path cleanup duplication.
+	tagsBytes, err := json.Marshal(tags)
+	if err != nil {
+		return "", errors.Wrap(err, "An IO error occurred during the current operation")
+	}
+	// And now write out the new snapshot file, overwriting that location.
+	tagsPath := strings.TrimSuffix(b.stackPath(name), ".json") + ".tags.json"
+	if err = ioutil.WriteFile(tagsPath, tagsBytes, 0600); err != nil {
+		return "", errors.Wrap(err, "An IO error occurred during the current operation")
+	}
+
+	if err := os.RemoveAll(tagsPath); err != nil {
+		return "", err
+	}
+
 	return file, nil
 }
 
@@ -230,6 +275,12 @@ func (b *localBackend) removeStack(name tokens.QName) error {
 	// Just make a backup of the file and don't write out anything new.
 	file := b.stackPath(name)
 	backupTarget(file)
+
+	// TODO JVP path cleanup duplication.
+	tagsPath := strings.TrimSuffix(b.stackPath(name), ".json") + ".tags.json"
+	if err := os.RemoveAll(tagsPath); err != nil {
+		return err
+	}
 
 	historyDir := b.historyDirectory(name)
 	return os.RemoveAll(historyDir)

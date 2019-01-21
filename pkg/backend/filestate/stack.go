@@ -29,25 +29,35 @@ import (
 // Stack is a local stack.  This simply adds some local-specific properties atop the standard backend stack interface.
 type Stack interface {
 	backend.Stack
-	Path() string // a path to the stack's checkpoint file on disk.
+	Path() string                                   // a path to the stack's checkpoint file on disk.
+	Tags() map[apitype.StackTagName]string          // the stack's tags.
+	MergeTags(tags map[apitype.StackTagName]string) // merges tags with the stack's existing tags.
 }
 
 // localStack is a local stack descriptor.
 type localStack struct {
-	ref      backend.StackReference // the stack's reference (qualified name).
-	path     string                 // a path to the stack's checkpoint file on disk.
-	config   config.Map             // the stack's config bag.
-	snapshot *deploy.Snapshot       // a snapshot representing the latest deployment state.
-	b        *localBackend          // a pointer to the backend this stack belongs to.
+	// ref is the stack's qualified name.
+	ref backend.StackReference
+	// path is the path to the stack's checkpoint file on disk.
+	path string
+	// config is this stack's config bag.
+	config config.Map
+	// snapshot snapshot contains the latest deployment state.
+	snapshot *deploy.Snapshot
+	// b is a pointer to the backend this stack belongs to.
+	b *localBackend
+	// tags contains metadata tags describing additional, extensible properties about this stack.
+	tags map[apitype.StackTagName]string
 }
 
 func newStack(ref backend.StackReference, path string, config config.Map,
-	snapshot *deploy.Snapshot, b *localBackend) Stack {
+	snapshot *deploy.Snapshot, tags map[apitype.StackTagName]string, b *localBackend) Stack {
 	return &localStack{
 		ref:      ref,
 		path:     path,
 		config:   config,
 		snapshot: snapshot,
+		tags:     tags,
 		b:        b,
 	}
 }
@@ -57,6 +67,23 @@ func (s *localStack) Config() config.Map                                     { r
 func (s *localStack) Snapshot(ctx context.Context) (*deploy.Snapshot, error) { return s.snapshot, nil }
 func (s *localStack) Backend() backend.Backend                               { return s.b }
 func (s *localStack) Path() string                                           { return s.path }
+func (s *localStack) Tags() map[apitype.StackTagName]string                  { return s.tags }
+
+func (s *localStack) MergeTags(tags map[apitype.StackTagName]string) {
+	if len(tags) == 0 {
+		return
+	}
+
+	if s.tags == nil {
+		s.tags = make(map[apitype.StackTagName]string)
+	}
+
+	// Add each new tag to the existing tags, overwriting existing tags with the
+	// latest values.
+	for k, v := range tags {
+		s.tags[k] = v
+	}
+}
 
 func (s *localStack) Remove(ctx context.Context, force bool) (bool, error) {
 	return backend.RemoveStack(ctx, s, force)

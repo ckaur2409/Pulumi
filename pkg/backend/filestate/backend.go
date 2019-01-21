@@ -142,7 +142,7 @@ func (b *localBackend) CreateStack(ctx context.Context, stackRef backend.StackRe
 		return nil, errors.New("invalid empty stack name")
 	}
 
-	if _, _, _, err := b.getStack(stackName); err == nil {
+	if _, _, _, _, err := b.getStack(stackName); err == nil {
 		return nil, &backend.StackAlreadyExistsError{StackName: string(stackName)}
 	}
 
@@ -154,12 +154,12 @@ func (b *localBackend) CreateStack(ctx context.Context, stackRef backend.StackRe
 		return nil, errors.Wrap(err, "validating stack properties")
 	}
 
-	file, err := b.saveStack(stackName, nil, nil)
+	file, err := b.saveStack(stackName, nil, nil, tags)
 	if err != nil {
 		return nil, err
 	}
 
-	stack := newStack(stackRef, file, nil, nil, b)
+	stack := newStack(stackRef, file, nil, nil, tags, b)
 	fmt.Printf("Created stack '%s'\n", stack.Ref())
 
 	return stack, nil
@@ -167,14 +167,14 @@ func (b *localBackend) CreateStack(ctx context.Context, stackRef backend.StackRe
 
 func (b *localBackend) GetStack(ctx context.Context, stackRef backend.StackReference) (backend.Stack, error) {
 	stackName := stackRef.Name()
-	config, snapshot, path, err := b.getStack(stackName)
+	config, snapshot, path, tags, err := b.getStack(stackName)
 	switch {
 	case os.IsNotExist(errors.Cause(err)):
 		return nil, nil
 	case err != nil:
 		return nil, err
 	default:
-		return newStack(stackRef, path, config, snapshot, b), nil
+		return newStack(stackRef, path, config, snapshot, tags, b), nil
 	}
 }
 
@@ -201,7 +201,7 @@ func (b *localBackend) ListStacks(
 
 func (b *localBackend) RemoveStack(ctx context.Context, stackRef backend.StackReference, force bool) (bool, error) {
 	stackName := stackRef.Name()
-	_, snapshot, _, err := b.getStack(stackName)
+	_, snapshot, _, _, err := b.getStack(stackName)
 	if err != nil {
 		return false, err
 	}
@@ -451,7 +451,7 @@ func (b *localBackend) ExportDeployment(ctx context.Context,
 	stackRef backend.StackReference) (*apitype.UntypedDeployment, error) {
 
 	stackName := stackRef.Name()
-	_, snap, _, err := b.getStack(stackName)
+	_, snap, _, _, err := b.getStack(stackName)
 	if err != nil {
 		return nil, err
 	}
@@ -475,7 +475,7 @@ func (b *localBackend) ImportDeployment(ctx context.Context, stackRef backend.St
 	deployment *apitype.UntypedDeployment) error {
 
 	stackName := stackRef.Name()
-	config, _, _, err := b.getStack(stackName)
+	config, _, _, tags, err := b.getStack(stackName)
 	if err != nil {
 		return err
 	}
@@ -485,7 +485,7 @@ func (b *localBackend) ImportDeployment(ctx context.Context, stackRef backend.St
 		return err
 	}
 
-	_, err = b.saveStack(stackName, config, snap)
+	_, err = b.saveStack(stackName, config, snap, tags)
 	return err
 }
 
@@ -527,7 +527,7 @@ func (b *localBackend) getLocalStacks() ([]tokens.QName, error) {
 
 		// Read in this stack's information.
 		name := tokens.QName(stackfn[:len(stackfn)-len(ext)])
-		_, _, _, err := b.getStack(name)
+		_, _, _, _, err := b.getStack(name)
 		if err != nil {
 			logging.V(5).Infof("error reading stack: %v (%v) skipping", name, err)
 			continue // failure reading the stack information.
@@ -543,14 +543,33 @@ func (b *localBackend) getLocalStacks() ([]tokens.QName, error) {
 func (b *localBackend) GetStackTags(ctx context.Context,
 	stackRef backend.StackReference) (map[apitype.StackTagName]string, error) {
 
-	// The local backend does not currently persist tags.
-	return nil, nil
+	stack, err := b.GetStack(ctx, stackRef)
+	if err != nil {
+		return nil, err
+	}
+	if stack == nil {
+		return nil, errors.New("stack not found")
+	}
+
+	return stack.(Stack).Tags(), nil
 }
 
 // UpdateStackTags updates the stacks's tags, replacing all existing tags.
 func (b *localBackend) UpdateStackTags(ctx context.Context,
 	stackRef backend.StackReference, tags map[apitype.StackTagName]string) error {
 
-	// The local backend does not currently persist tags.
+	stackName := stackRef.Name()
+	config, snapshot, _, _, err := b.getStack(stackName)
+	switch {
+	case os.IsNotExist(errors.Cause(err)):
+		return errors.New("stack not found")
+	case err != nil:
+		return err
+	}
+
+	if _, err := b.saveStack(stackName, config, snapshot, tags); err != nil {
+		return err
+	}
+
 	return nil
 }
