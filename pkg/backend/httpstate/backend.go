@@ -281,18 +281,9 @@ func Login(ctx context.Context, d diag.Sink, cloudURL, stackConfigFile string, o
 	} else {
 		// If no access token is available from the environment, and we are interactive, prompt and offer to
 		// open a browser to make it easy to generate and use a fresh token.
-		line1 := fmt.Sprintf("Manage your Pulumi stacks by logging in.")
-		line1len := len(line1)
-		line1 = colors.Highlight(line1, "Pulumi stacks", colors.Underline+colors.Bold)
-		fmt.Printf(opts.Color.Colorize(line1) + "\n")
-		maxlen := line1len
-
-		line2 := "Run `pulumi login --help` for alternative login options."
-		line2len := len(line2)
-		fmt.Printf(opts.Color.Colorize(line2) + "\n")
-		if line2len > maxlen {
-			maxlen = line2len
-		}
+		fmt.Printf("Welcome to Pulumi! " + cmdutil.EmojiOr("🎉", "") + "\n")
+		fmt.Printf("Get started by s\n")
+		fmt.Printf("Run `pulumi login --help` for alternative login options.")
 
 		// In the case where we could not construct a link to the pulumi console based on the API server's hostname,
 		// don't offer magic log-in or text about where to find your access token.
@@ -307,22 +298,14 @@ func Login(ctx context.Context, d diag.Sink, cloudURL, stackConfigFile string, o
 			}
 		} else {
 			line3 := fmt.Sprintf("Enter your access token from %s", accountLink)
-			line3len := len(line3)
 			line3 = colors.Highlight(line3, "access token", colors.BrightCyan+colors.Bold)
 			line3 = colors.Highlight(line3, accountLink, colors.BrightBlue+colors.Underline+colors.Bold)
 			fmt.Printf(opts.Color.Colorize(line3) + "\n")
-			if line3len > maxlen {
-				maxlen = line3len
-			}
 
 			line4 := "    or hit <ENTER> to log in using your browser"
-			var padding string
-			if pad := maxlen - len(line4); pad > 0 {
-				padding = strings.Repeat(" ", pad)
-			}
 			line4 = colors.Highlight(line4, "<ENTER>", colors.BrightCyan+colors.Bold)
 
-			if accessToken, err = cmdutil.ReadConsoleNoEcho(opts.Color.Colorize(line4) + padding); err != nil {
+			if accessToken, err = cmdutil.ReadConsoleNoEcho(opts.Color.Colorize(line4)); err != nil {
 				return nil, err
 			}
 
