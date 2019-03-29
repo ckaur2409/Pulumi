@@ -187,7 +187,7 @@ func chooseStack(
 
 	// List stacks as available options.
 	var options []string
-	summaries, err := b.ListStacks(commandContext(), &proj.Name)
+	summaries, err := b.ListStacks(commandContext(), nil, &proj.Name)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not query backend for stacks")
 	}

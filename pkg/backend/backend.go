@@ -95,7 +95,8 @@ type Backend interface {
 	// first boolean return value will be set to true.
 	RemoveStack(ctx context.Context, stackRef StackReference, force bool) (bool, error)
 	// ListStacks returns a list of stack summaries for all known stacks in the target backend.
-	ListStacks(ctx context.Context, projectFilter *tokens.PackageName) ([]StackSummary, error)
+	ListStacks(ctx context.Context, organizationFilter *string,
+		projectFilter *tokens.PackageName) ([]StackSummary, error)
 
 	RenameStack(ctx context.Context, stackRef StackReference, newName tokens.QName) error
 

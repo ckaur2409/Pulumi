@@ -555,8 +555,8 @@ func (b *cloudBackend) CreateStack(
 	return stack, nil
 }
 
-func (b *cloudBackend) ListStacks(
-	ctx context.Context, projectFilter *tokens.PackageName) ([]backend.StackSummary, error) {
+func (b *cloudBackend) ListStacks(ctx context.Context, organizationFilter *string,
+	projectFilter *tokens.PackageName) ([]backend.StackSummary, error) {
 
 	var cleanedProjectName *string
 	if projectFilter != nil {
@@ -564,7 +564,7 @@ func (b *cloudBackend) ListStacks(
 		cleanedProjectName = &clean
 	}
 
-	apiSummaries, err := b.client.ListStacks(ctx, cleanedProjectName)
+	apiSummaries, err := b.client.ListStacks(ctx, organizationFilter, cleanedProjectName)
 	if err != nil {
 		return nil, err
 	}

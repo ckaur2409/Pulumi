@@ -70,7 +70,7 @@ func newStackLsCmd() *cobra.Command {
 			}
 
 			// List all of the stacks available.
-			stackSummaries, err := b.ListStacks(commandContext(), packageFilter)
+			stackSummaries, err := b.ListStacks(commandContext(), nil, packageFilter)
 			if err != nil {
 				return err
 			}

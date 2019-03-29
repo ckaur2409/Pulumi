@@ -114,8 +114,9 @@ func newNewCmd() *cobra.Command {
 
 			// If we're going to be creating a stack, get the current backend, which
 			// will kick off the login flow (if not already logged-in).
+			var b backend.Backend
 			if !generateOnly {
-				if _, err = currentBackend(opts); err != nil {
+				if b, err = currentBackend(opts); err != nil {
 					return err
 				}
 			}
@@ -192,7 +193,10 @@ func newNewCmd() *cobra.Command {
 				fmt.Println()
 			}
 
+			// TODO JVP get a list of the users' orgs
+
 			// Prompt for the project name, if it wasn't already specified.
+			// TODO JVP ensure the project doesn't already exist, both when passed via a flag and when prompted.
 			if name == "" {
 				defaultValue := workspace.ValueOrSanitizedDefaultProjectName(name, template.ProjectName, filepath.Base(cwd))
 				name, err = promptForValue(

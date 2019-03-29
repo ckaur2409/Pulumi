@@ -152,14 +152,16 @@ func (pc *Client) GetCLIVersionInfo(ctx context.Context) (semver.Version, semver
 }
 
 // ListStacks lists all stacks the current user has access to, optionally filtered by project.
-func (pc *Client) ListStacks(ctx context.Context, projectFilter *string) ([]apitype.StackSummary, error) {
+func (pc *Client) ListStacks(ctx context.Context, organizationFilter,
+	projectFilter *string) ([]apitype.StackSummary, error) {
 
 	var resp apitype.ListStacksResponse
-	var queryFilter interface{}
-	if projectFilter != nil {
-		queryFilter = struct {
-			ProjectFilter string `url:"project"`
-		}{ProjectFilter: *projectFilter}
+	queryFilter := struct {
+		OrganizationFilter *string `url:"organization,omitempty"`
+		ProjectFilter      *string `url:"project,omitempty"`
+	}{
+		OrganizationFilter: organizationFilter,
+		ProjectFilter:      projectFilter,
 	}
 
 	if err := pc.restCall(ctx, "GET", "/api/user/stacks", queryFilter, nil, &resp); err != nil {
