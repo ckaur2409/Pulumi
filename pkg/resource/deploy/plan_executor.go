@@ -16,7 +16,6 @@ package deploy
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
 	"github.com/pulumi/pulumi/pkg/diag"
