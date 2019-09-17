@@ -47,6 +47,8 @@ type Stack interface {
 	Refresh(ctx context.Context, op UpdateOperation) (engine.ResourceChanges, result.Result)
 	// Destroy this stack's resources.
 	Destroy(ctx context.Context, op UpdateOperation) (engine.ResourceChanges, result.Result)
+	// Watch this stack.
+	Watch(ctx context.Context, op UpdateOperation) result.Result
 
 	// Query this stack's state.
 	Query(ctx context.Context, op UpdateOperation) result.Result
@@ -94,6 +96,11 @@ func RefreshStack(ctx context.Context, s Stack, op UpdateOperation) (engine.Reso
 // DestroyStack destroys all of this stack's resources.
 func DestroyStack(ctx context.Context, s Stack, op UpdateOperation) (engine.ResourceChanges, result.Result) {
 	return s.Backend().Destroy(ctx, s, op)
+}
+
+// WatchStack destroys all of this stack's resources.
+func WatchStack(ctx context.Context, s Stack, op UpdateOperation) result.Result {
+	return s.Backend().Watch(ctx, s.Ref(), op)
 }
 
 // GetLatestConfiguration returns the configuration for the most recent deployment of the stack.

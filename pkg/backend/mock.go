@@ -61,6 +61,8 @@ type MockBackend struct {
 		UpdateOperation) (engine.ResourceChanges, result.Result)
 	DestroyF func(context.Context, Stack,
 		UpdateOperation) (engine.ResourceChanges, result.Result)
+	WatchF func(context.Context, StackReference,
+		UpdateOperation) result.Result
 	GetLogsF func(context.Context, Stack, StackConfiguration,
 		operations.LogQuery) ([]operations.LogEntry, error)
 }
@@ -189,6 +191,15 @@ func (be *MockBackend) Destroy(ctx context.Context, stack Stack,
 	panic("not implemented")
 }
 
+func (be *MockBackend) Watch(ctx context.Context, stackRef StackReference,
+	op UpdateOperation) result.Result {
+
+	if be.WatchF != nil {
+		return be.WatchF(ctx, stackRef, op)
+	}
+	panic("not implemented")
+}
+
 func (be *MockBackend) Query(ctx context.Context, stack Stack,
 	op UpdateOperation) result.Result {
 
@@ -286,6 +297,7 @@ type MockStack struct {
 	UpdateF   func(ctx context.Context, op UpdateOperation) (engine.ResourceChanges, result.Result)
 	RefreshF  func(ctx context.Context, op UpdateOperation) (engine.ResourceChanges, result.Result)
 	DestroyF  func(ctx context.Context, op UpdateOperation) (engine.ResourceChanges, result.Result)
+	WatchF    func(ctx context.Context, op UpdateOperation) result.Result
 	QueryF    func(ctx context.Context, op UpdateOperation) result.Result
 	RemoveF   func(ctx context.Context, force bool) (bool, error)
 	RenameF   func(ctx context.Context, newName tokens.QName) error
@@ -349,6 +361,13 @@ func (ms *MockStack) Refresh(ctx context.Context, op UpdateOperation) (engine.Re
 func (ms *MockStack) Destroy(ctx context.Context, op UpdateOperation) (engine.ResourceChanges, result.Result) {
 	if ms.DestroyF != nil {
 		return ms.DestroyF(ctx, op)
+	}
+	panic("not implemented")
+}
+
+func (ms *MockStack) Watch(ctx context.Context, op UpdateOperation) result.Result {
+	if ms.WatchF != nil {
+		return ms.WatchF(ctx, op)
 	}
 	panic("not implemented")
 }
