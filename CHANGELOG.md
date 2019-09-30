@@ -3,17 +3,17 @@ CHANGELOG
 
 ## HEAD (Unreleased)
 
+- Propagate resource inputs to resource state during preview, including first-class unknown values. This allows the
+  preview to better estimate the state of a resource after an update, including property values that were populated
+  using defaults calculated by the provider.
+  [#3245](https://github.com/pulumi/pulumi/pull/3245)
+
 ## 1.3.1 (2019-10-09)
 
 - Revert "propagate resource inputs to resource state during preview". These changes had a critical issue that needs
   further investigation.
 
 ## 1.3.0 (2019-10-09)
-
-- Propagate resource inputs to resource state during preview, including first-class unknown values. This allows the
-  preview to better estimate the state of a resource after an update, including property values that were populated
-  using defaults calculated by the provider.
-  [#3245](https://github.com/pulumi/pulumi/pull/3245)
 
 - Fetch version information from the Homebrew JSON API for CLIs installed using `brew`.
   [#3290](https://github.com/pulumi/pulumi/pull/3290)
