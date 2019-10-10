@@ -16,7 +16,7 @@
 
 import * as upath from "upath";
 import { ResourceError } from "../../errors";
-import { Input, isSecretOutput, Output } from "../../output";
+import { containsUnknowns, Input, isSecretOutput, Output } from "../../output";
 import * as resource from "../../resource";
 import { hasTrueBooleanMember } from "../../utils";
 import { CapturedPropertyChain, CapturedPropertyInfo, CapturedVariableMap, parseFunction } from "./parseFunction";
@@ -1231,7 +1231,10 @@ async function getOrCreateEntryAsync(
         // into the Object-Entry for the SerializedOutput instance.
 
         // First get the underlying value of the out, and create the environment entry for it.
-        const val = await output.promise();
+        let val = await output.promise();
+        if (containsUnknowns(val)) {
+            val = undefined;
+        }
         const valEntry = await getOrCreateEntryAsync(val, undefined, context, serialize, logInfo);
 
         // Now, create an empty-serialized output and create an environment entry for it.  It

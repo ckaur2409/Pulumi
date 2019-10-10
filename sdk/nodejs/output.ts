@@ -132,6 +132,16 @@ class OutputImpl<T> implements OutputInstance<T> {
             isKnown: Promise<boolean>,
             isSecret: Promise<boolean>) {
 
+        promise = Promise.all([isKnown, promise]).then(([known, val]) => {
+            // If the value is explicitly unknown but does not contain unknown values, collapse its value to the
+            // unknown value. This ensures that any Output where isKnown resolves has a promise that resolves to
+            // a value that contains an unknown.
+            if (!known && !containsUnknowns(val)) {
+                return <T><any>unknown;
+            }
+            return val;
+        });
+
         isKnown = isKnown.then(known => {
             if (!known) {
                // If we were explicitly not-known, then we do not have to examine the value of the output at all.
@@ -393,10 +403,16 @@ export function output<T>(val: Input<T | undefined>): Output<Unwrap<T | undefine
         // For a promise, we can just treat the same as an output that points to that resource. So
         // we just create an Output around the Promise, and immediately apply the unwrap function on
         // it to transform the value it points at.
-        return <any>(<any>new Output(new Set(), val, /*isKnown*/ Promise.resolve(true), /*isSecret*/ Promise.resolve(false))).apply(output, true);
+        const newOutput = new Output(new Set(), val, /*isKnown*/ Promise.resolve(true), /*isSecret*/ Promise.resolve(false));
+        return <any>(<any>newOutput).apply(output, /*runWithUnknowns*/ true);
     }
     else if (Output.isInstance(val)) {
-        return <any>(<any>val).apply(output, /*runWithUnknowns:*/ true);
+        // We create a new output here from the raw pieces of the original output in order to accommodate outputs from
+        // downlevel SxS SDKs. This ensures that first-class unknowns are properly represented in the system: if this
+        // was a downlevel output where val.isKnown resolves to false, this guarantess that the returned output's
+        // promise resolves to unknown.
+        const newOutput = new Output(val.resources(), val.promise(), val.isKnown, val.isSecret);
+        return <any>(<any>newOutput).apply(output, /*runWithUnknowns*/ true);
     }
     else if (val instanceof Array) {
         return <any>all(val.map(output));

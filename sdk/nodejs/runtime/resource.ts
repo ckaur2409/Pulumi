@@ -17,7 +17,7 @@ import * as grpc from "grpc";
 import * as log from "../log";
 import * as utils from "../utils";
 
-import { Input, Inputs, Output, output } from "../output";
+import { Input, Inputs, Output, output, unknown } from "../output";
 import { ResolvedResource } from "../queryable";
 import {
     ComponentResource,
@@ -333,8 +333,8 @@ async function prepareResource(label: string, res: Resource, custom: boolean,
         if ((<CustomResourceOptions>opts).provider !== undefined) {
             const provider = (<CustomResourceOptions>opts).provider!;
             const providerURN = await provider.urn.promise();
-            const providerID = await provider.id.promise() || unknownValue;
-            providerRef = `${providerURN}::${providerID}`;
+            const providerID = await provider.id.promise() || unknown;
+            providerRef = `${providerURN}::${providerID === unknown ? unknownValue : providerID}`;
         }
 
         importID = (<CustomResourceOptions>opts).import;

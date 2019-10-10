@@ -15,7 +15,8 @@
 // tslint:disable
 
 import * as assert from "assert";
-import { Output, concat, interpolate, output, unknown } from "../output";
+import { Output, OutputInstance, all, concat, interpolate, output, unknown } from "../output";
+import { Resource } from "../resource";
 import * as runtime from "../runtime";
 import { asyncTest } from "./util";
 
@@ -36,6 +37,30 @@ function mustCompile(): Output<Widget> {
             whatever: 1,
         }
     })
+}
+
+// mockOutput returns a value that looks like an Output, but allows for greater control over its behavior. This can be
+// used to simulate outputs from downlevel SDKs.
+function mockOutput(isKnown: boolean | Promise<boolean>, value: any | Promise<any>): any {
+    isKnown = isKnown instanceof Promise ? isKnown : Promise.resolve(isKnown);
+    value = value instanceof Promise ? value : Promise.resolve(value);
+
+    return {
+        __pulumiOutput: true,
+        isKnown: isKnown,
+        isSecret: Promise.resolve(false),
+        promise: () => value,
+        resources: () => new Set<Resource>(),
+
+        apply(callback: any): any {
+            return mockOutput(isKnown, value.then(async (v: any) => {
+                if (!isKnown) {
+                    return undefined;
+                }
+                return callback(v);
+            }));
+        }
+    }
 }
 
 describe("output", () => {
@@ -62,7 +87,7 @@ describe("output", () => {
         assert.equal(isKnown, false);
 
         const value = await output2.promise();
-        assert.equal(value, "inner");
+        assert.equal(value, unknown);
     }));
 
     it("can await even when isKnown is a rejected promise.", asyncTest(async () => {
@@ -118,11 +143,11 @@ describe("output", () => {
             return new Output<T>(
                 new Set([...output1.resources(), ...output2.resources()]),
                 Promise.all([val1, val2])
-                       .then(([val1, val2]) => val1 || val2),
+                       .then(([val1, val2]) => val1 !== unknown ? val1 : val2),
                 Promise.all([val1, output1.isKnown, output2.isKnown])
-                       .then(([val1, isKnown1, isKnown2]) => val1 ? isKnown1 : isKnown2),
+                       .then(([val1, isKnown1, isKnown2]) => val1 !== unknown ? isKnown1 : isKnown2),
                 Promise.all([val1, output1.isSecret, output2.isSecret])
-                       .then(([val1, isSecret1, isSecret2]) => val1 ? isSecret1 : isSecret2));
+                       .then(([val1, isSecret1, isSecret2]) => val1 !== unknown ? isSecret1 : isSecret2));
         }
 
         it("choose between known and known output, non-secret", asyncTest(async () => {
@@ -245,7 +270,7 @@ describe("output", () => {
             assert.equal(isKnown, false);
 
             const value = await result.promise();
-            assert.equal(value, undefined);
+            assert.equal(value, unknown);
 
             const secret = await result.isSecret;
             assert.equal(secret, false);
@@ -263,7 +288,7 @@ describe("output", () => {
             assert.equal(isKnown, false);
 
             const value = await result.promise();
-            assert.equal(value, undefined);
+            assert.equal(value, unknown);
 
             const secret = await result.isSecret;
             assert.equal(secret, false);
@@ -281,7 +306,7 @@ describe("output", () => {
             assert.equal(isKnown, false);
 
             const value = await result.promise();
-            assert.equal(value, undefined);
+            assert.equal(value, unknown);
 
             const secret = await result.isSecret;
             assert.equal(secret, true);
@@ -299,7 +324,7 @@ describe("output", () => {
             assert.equal(isKnown, false);
 
             const value = await result.promise();
-            assert.equal(value, undefined);
+            assert.equal(value, unknown);
 
             const secret = await result.isSecret;
             assert.equal(secret, true);
@@ -442,8 +467,14 @@ describe("output", () => {
         }));
 
         it("lifts properties from values with nested unknowns", asyncTest(async () => {
-            const output1 = output({ foo: "foo", bar: unknown, baz: Promise.resolve(unknown) });
+            runtime._setIsDryRun(true);
 
+            const output1 = output({
+                foo: "foo",
+                bar: unknown,
+                baz: Promise.resolve(unknown),
+                qux: mockOutput(false, undefined),
+            });
             assert.equal(await output1.isKnown, false);
 
             const result1 = output1.foo;
@@ -458,21 +489,76 @@ describe("output", () => {
             assert.equal(await result3.isKnown, false);
             assert.equal(await result3.promise(), unknown);
 
-            const result4 = (<any>output1.baz).qux;
+            const result4 = output1.qux;
             assert.equal(await result4.isKnown, false);
             assert.equal(await result4.promise(), unknown);
 
-            const output2 = output([ "foo", unknown ]);
+            const result5 = (<any>output1.baz).qux;
+            assert.equal(await result5.isKnown, false);
+            assert.equal(await result5.promise(), unknown);
 
+            const output2 = output([ "foo", unknown, mockOutput(false, undefined) ]);
             assert.equal(await output2.isKnown, false);
 
-            const result5 = output2[0];
-            assert.equal(await result5.isKnown, true);
-            assert.equal(await result5.promise(), "foo");
+            const result6 = output2[0];
+            assert.equal(await result6.isKnown, true);
+            assert.equal(await result6.promise(), "foo");
 
-            const result6 = output2[1];
-            assert.equal(await result6.isKnown, false);
-            assert.equal(await result6.promise(), unknown);
+            const result7 = output2[1];
+            assert.equal(await result7.isKnown, false);
+            assert.equal(await result7.promise(), unknown);
+
+            const result8 = output2[2];
+            assert.equal(await result8.isKnown, false);
+            assert.equal(await result8.promise(), unknown);
+
+            const output3 = all([ unknown, mockOutput(false, undefined), output([ "foo", unknown ])]);
+            assert.equal(await output3.isKnown, false);
+
+            const result9 = output3[0];
+            assert.equal(await result9.isKnown, false);
+            assert.equal(await result9.promise(), unknown);
+
+            const result10 = output3[1];
+            assert.equal(await result10.isKnown, false);
+            assert.equal(await result10.promise(), unknown);
+
+            const result11 = output3[2];
+            assert.equal(await result11.isKnown, false);
+
+            const result12 = (<any>result11)[0];
+            assert.equal(await result12.isKnown, true);
+            assert.equal(await result12.promise(), "foo");
+
+            const result13 = (<any>result11)[1];
+            assert.equal(await result13.isKnown, false);
+            assert.equal(await result13.promise(), unknown);
+
+            const output4 = all({
+                foo: unknown,
+                bar: mockOutput(false, undefined),
+                baz: output({ foo: "foo", qux: unknown }),
+            });
+            assert.equal(await output4.isKnown, false);
+
+            const result14 = output4.foo;
+            assert.equal(await result14.isKnown, false);
+            assert.equal(await result14.promise(), unknown);
+
+            const result15 = output4.bar;
+            assert.equal(await result15.isKnown, false);
+            assert.equal(await result15.promise(), unknown);
+
+            const result16 = output4.baz;
+            assert.equal(await result16.isKnown, false);
+
+            const result17 = (<any>result16).foo;
+            assert.equal(await result17.isKnown, true);
+            assert.equal(await result17.promise(), "foo");
+
+            const result18 = (<any>result16).qux;
+            assert.equal(await result18.isKnown, false);
+            assert.equal(await result18.promise(), unknown);
         }));
     });
 });

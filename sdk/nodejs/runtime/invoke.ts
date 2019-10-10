@@ -15,7 +15,7 @@
 import * as grpc from "grpc";
 import { InvokeOptions } from "../invoke";
 import * as log from "../log";
-import { Inputs } from "../output";
+import { Inputs, unknown } from "../output";
 import { debuggablePromise } from "./debuggable";
 import { deserializeProperties, serializeProperties, unknownValue } from "./rpc";
 import { excessiveDebugOutput, getMonitor, rpcKeepAlive } from "./settings";
@@ -51,8 +51,8 @@ export async function invoke(tok: string, props: Inputs, opts?: InvokeOptions): 
         let providerRef: string | undefined;
         if (opts.provider !== undefined) {
             const providerURN = await opts.provider.urn.promise();
-            const providerID = await opts.provider.id.promise() || unknownValue;
-            providerRef = `${providerURN}::${providerID}`;
+            const providerID = await opts.provider.id.promise() || unknown;
+            providerRef = `${providerURN}::${providerID === unknown ? unknownValue : providerID}`;
         }
 
         const req = new providerproto.InvokeRequest();
