@@ -578,6 +578,46 @@ func TestConfigPaths(t *testing.T) {
 			TopLevelExpectedValue: `this super secret is encrypted`,
 		},
 		{
+			Key:                   "[]",
+			Value:                 `square brackets value`,
+			TopLevelKey:           "[]",
+			TopLevelExpectedValue: `square brackets value`,
+		},
+		{
+			Key:                   "x.y",
+			Value:                 `x.y value`,
+			TopLevelKey:           "x.y",
+			TopLevelExpectedValue: `x.y value`,
+		},
+		{
+			Key:                   "0",
+			Value:                 `0 value`,
+			Path:                  true,
+			TopLevelKey:           "0",
+			TopLevelExpectedValue: `0 value`,
+		},
+		{
+			Key:                   "true",
+			Value:                 `value`,
+			Path:                  true,
+			TopLevelKey:           "true",
+			TopLevelExpectedValue: `value`,
+		},
+		{
+			Key:                   `'["test.Key"]'`,
+			Value:                 `'test key value'`,
+			Path:                  true,
+			TopLevelKey:           "test.Key",
+			TopLevelExpectedValue: `test key value`,
+		},
+		{
+			Key:                   `'nested["test.Key"]'`,
+			Value:                 `'nested test key value'`,
+			Path:                  true,
+			TopLevelKey:           "nested",
+			TopLevelExpectedValue: `{"test.Key":"nested test key value"}`,
+		},
+		{
 			Key:                   "outer.inner",
 			Value:                 `value`,
 			Path:                  true,
@@ -675,13 +715,14 @@ func TestConfigPaths(t *testing.T) {
 			topLevelKey := fmt.Sprintf("%s%s", ns, test.TopLevelKey)
 
 			// Set the value.
-			args := []string{"config", "set", key, test.Value}
+			args := []string{"config", "set"}
 			if test.Secret {
 				args = append(args, "--secret")
 			}
 			if test.Path {
 				args = append(args, "--path")
 			}
+			args = append(args, key, test.Value)
 			stdout, stderr := e.RunCommand("pulumi", args...)
 			assert.Equal(t, "", stdout)
 			assert.Equal(t, "", stderr)
@@ -690,7 +731,24 @@ func TestConfigPaths(t *testing.T) {
 			validateConfigGet(key, test.Value, test.Path)
 
 			// Get the top-level value and validate it.
-			validateConfigGet(topLevelKey, test.TopLevelExpectedValue, test.Path)
+			validateConfigGet(topLevelKey, test.TopLevelExpectedValue, false /*path*/)
+		}
+	}
+
+	badKeys := []string{
+		`[""]`,       // First path component must be a string.
+		`[0]`,        // First path component must be a string.
+		`names[-1]`,  // Index out of range.
+		`names[5]`,   // Index out of range.
+		`key.secure`, // "secure" maps of length one are reserved by the system.
+	}
+
+	for _, ns := range []string{"", "my:"} {
+		for _, badKey := range badKeys {
+			key := fmt.Sprintf("%s%s", ns, badKey)
+			stdout, stderr := e.RunCommandExpectError("pulumi", "config", "set", "--path", key, "value")
+			assert.Equal(t, "", stdout)
+			assert.NotEqual(t, "", stderr)
 		}
 	}
 }
