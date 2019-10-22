@@ -21,6 +21,7 @@ import (
 	"github.com/pulumi/pulumi/pkg/tokens"
 	"github.com/pulumi/pulumi/pkg/util/contract"
 	"github.com/pulumi/pulumi/pkg/workspace"
+	pulumirpc "github.com/pulumi/pulumi/sdk/proto/go"
 )
 
 // Provider presents a simple interface for orchestrating resource create, read, update, and delete operations.  Each
@@ -71,6 +72,11 @@ type Provider interface {
 	Delete(urn resource.URN, id resource.ID, props resource.PropertyMap, timeout float64) (resource.Status, error)
 	// Invoke dynamically executes a built-in function in the provider.
 	Invoke(tok tokens.ModuleMember, args resource.PropertyMap) (resource.PropertyMap, []CheckFailure, error)
+	// StreamInvoke dynamically executes a built-in function in the provider, which returns a stream
+	// of responses.
+	StreamInvoke(
+		tok tokens.ModuleMember, args resource.PropertyMap,
+		stream pulumirpc.ResourceMonitor_StreamInvokeServer) (resource.PropertyMap, []CheckFailure, error)
 	// GetPluginInfo returns this plugin's information.
 	GetPluginInfo() (workspace.PluginInfo, error)
 

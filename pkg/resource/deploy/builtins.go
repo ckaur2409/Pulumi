@@ -12,6 +12,7 @@ import (
 	"github.com/pulumi/pulumi/pkg/tokens"
 	"github.com/pulumi/pulumi/pkg/util/contract"
 	"github.com/pulumi/pulumi/pkg/workspace"
+	pulumirpc "github.com/pulumi/pulumi/sdk/proto/go"
 )
 
 type builtinProvider struct {
@@ -156,6 +157,13 @@ func (p *builtinProvider) Invoke(tok tokens.ModuleMember,
 	}
 
 	return outs, nil, nil
+}
+
+func (p *builtinProvider) StreamInvoke(
+	tok tokens.ModuleMember, args resource.PropertyMap,
+	stream pulumirpc.ResourceMonitor_StreamInvokeServer) (resource.PropertyMap, []plugin.CheckFailure, error) {
+
+	return nil, nil, fmt.Errorf("not implemented 2")
 }
 
 func (p *builtinProvider) GetPluginInfo() (workspace.PluginInfo, error) {

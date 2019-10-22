@@ -78,6 +78,14 @@ export function invoke(tok: string, props: Inputs, opts: InvokeOptions = {}): Pr
     return invokeSync(tok, props, opts, syncInvokes);
 }
 
+export function streamInvoke(tok: string, props: Inputs, opts: InvokeOptions = {}): Promise<any> {
+    if (opts.async) {
+        throw Error("streamInvoke does not support async mode");
+    }
+
+    return streamInvokeAsync(tok, props, opts);
+}
+
 export function invokeFallbackToAsync(tok: string, props: Inputs, opts: InvokeOptions): Promise<any> {
     const asyncResult = invokeAsync(tok, props, opts);
     const syncResult = utils.promiseResult(asyncResult);
@@ -177,6 +185,51 @@ For more details see: https://www.pulumi.com/docs/troubleshooting/#synchronous-c
         return provider.__registrationId;
     }
 }
+
+async function streamInvokeAsync(tok: string, props: Inputs, opts: InvokeOptions): Promise<any> {
+    const label = `StreamInvoking function: tok=${tok} asynchronously`;
+    log.debug(label + (excessiveDebugOutput ? `, props=${JSON.stringify(props)}` : ``));
+
+    // Wait for all values to be available, and then perform the RPC.
+    const done = rpcKeepAlive();
+    try {
+        const serialized = await serializeProperties(`streamInvoke:${tok}`, props);
+        log.debug(`StreamInvoke RPC prepared: tok=${tok}` + excessiveDebugOutput ? `, obj=${JSON.stringify(serialized)}` : ``);
+
+        // Fetch the monitor and make an RPC request.
+        const monitor: any = getMonitor();
+
+        const provider = await ProviderResource.register(getProvider(tok, opts));
+        const req = createInvokeRequest(tok, serialized, provider, opts);
+
+        const resp: any = await debuggablePromise(new Promise((innerResolve, innerReject) =>
+            monitor.streamInvoke(req, (err: grpc.StatusObject, innerResponse: any) => {
+                log.debug(`StreamInvoke RPC finished: tok=${tok}; err: ${err}, resp: ${innerResponse}`);
+                if (err) {
+                    // If the monitor is unavailable, it is in the process of shutting down or has already
+                    // shut down. Don't emit an error and don't do any more RPCs, just exit.
+                    if (err.code === grpc.status.UNAVAILABLE) {
+                        log.debug("Resource monitor is terminating");
+                        process.exit(0);
+                    }
+
+                    // If the RPC failed, rethrow the error with a native exception and the message that
+                    // the engine provided - it's suitable for user presentation.
+                    innerReject(new Error(err.details));
+                }
+                else {
+                    innerResolve(innerResponse);
+                }
+            })), label);
+
+        // Finally propagate any other properties that were given to us as outputs.
+        return deserializeResponse(tok, resp);
+    }
+    finally {
+        done();
+    }
+}
+
 
 // Expose the properties of the actual result of invoke directly on the promise itself. Note this
 // doesn't actually involve any asynchrony.  The promise will be created synchronously and the

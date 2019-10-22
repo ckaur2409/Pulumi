@@ -15,6 +15,7 @@
 package providers
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/blang/semver"
@@ -26,6 +27,7 @@ import (
 	"github.com/pulumi/pulumi/pkg/resource/plugin"
 	"github.com/pulumi/pulumi/pkg/tokens"
 	"github.com/pulumi/pulumi/pkg/workspace"
+	pulumirpc "github.com/pulumi/pulumi/sdk/proto/go"
 )
 
 type testPluginHost struct {
@@ -141,6 +143,12 @@ func (prov *testProvider) Delete(urn resource.URN,
 func (prov *testProvider) Invoke(tok tokens.ModuleMember,
 	args resource.PropertyMap) (resource.PropertyMap, []plugin.CheckFailure, error) {
 	return nil, nil, errors.New("unsupported")
+}
+func (prov *testProvider) StreamInvoke(
+	tok tokens.ModuleMember, args resource.PropertyMap,
+	stream pulumirpc.ResourceMonitor_StreamInvokeServer) (resource.PropertyMap, []plugin.CheckFailure, error) {
+
+	return nil, nil, fmt.Errorf("not implemented")
 }
 func (prov *testProvider) GetPluginInfo() (workspace.PluginInfo, error) {
 	return workspace.PluginInfo{

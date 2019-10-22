@@ -15,6 +15,8 @@
 package deploytest
 
 import (
+	"fmt"
+
 	"github.com/blang/semver"
 	uuid "github.com/satori/go.uuid"
 
@@ -23,6 +25,7 @@ import (
 	"github.com/pulumi/pulumi/pkg/tokens"
 	"github.com/pulumi/pulumi/pkg/util/contract"
 	"github.com/pulumi/pulumi/pkg/workspace"
+	pulumirpc "github.com/pulumi/pulumi/sdk/proto/go"
 )
 
 type Provider struct {
@@ -154,4 +157,11 @@ func (prov *Provider) Invoke(tok tokens.ModuleMember,
 		return resource.PropertyMap{}, nil, nil
 	}
 	return prov.InvokeF(tok, args)
+}
+
+func (prov *Provider) StreamInvoke(
+	tok tokens.ModuleMember, args resource.PropertyMap,
+	stream pulumirpc.ResourceMonitor_StreamInvokeServer) (resource.PropertyMap, []plugin.CheckFailure, error) {
+
+	return nil, nil, fmt.Errorf("not implemented 1")
 }

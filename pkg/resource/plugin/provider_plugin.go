@@ -16,6 +16,7 @@ package plugin
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/blang/semver"
@@ -952,6 +953,78 @@ func (p *provider) Invoke(tok tokens.ModuleMember, args resource.PropertyMap) (r
 
 	logging.V(7).Infof("%s success (#ret=%d,#failures=%d) success", label, len(ret), len(failures))
 	return ret, failures, nil
+}
+
+// StreamInvoke dynamically executes a built-in function in the provider, which returns a stream of
+// responses.
+func (p *provider) StreamInvoke(
+	tok tokens.ModuleMember, args resource.PropertyMap,
+	stream pulumirpc.ResourceMonitor_StreamInvokeServer) (resource.PropertyMap, []CheckFailure, error) {
+
+	contract.Assert(tok != "")
+
+	label := fmt.Sprintf("%s.StreamInvoke(%s)", p.label(), tok)
+	logging.V(7).Infof("%s executing (#args=%d)", label, len(args))
+
+	// Get the RPC client and ensure it's configured.
+	client, err := p.getClient()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// If the provider is not fully configured, return an empty property map.
+	if !p.cfgknown {
+		return resource.PropertyMap{}, nil, nil
+	}
+
+	margs, err := MarshalProperties(args, MarshalOptions{
+		Label:       fmt.Sprintf("%s.args", label),
+		KeepSecrets: p.acceptSecrets,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	streamClient, err := client.StreamInvoke(
+		p.ctx.Request(), &pulumirpc.InvokeRequest{Tok: string(tok), Args: margs})
+	if err != nil {
+		rpcError := rpcerror.Convert(err)
+		logging.V(7).Infof("%s failed: %v", label, rpcError.Message())
+		return nil, nil, rpcError
+	}
+
+	for {
+		in, err := streamClient.Recv()
+		if err == io.EOF {
+			return nil, nil, nil
+		}
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if err := stream.Send(in); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	// // Unmarshal any return values.
+	// ret, err := UnmarshalProperties(stream.GetReturn(), MarshalOptions{
+	// 	Label:          fmt.Sprintf("%s.returns", label),
+	// 	RejectUnknowns: true,
+	// 	KeepSecrets:    true,
+	// })
+	// if err != nil {
+	// 	return nil, nil, err
+	// }
+
+	// // And now any properties that failed verification.
+	// var failures []CheckFailure
+	// for _, failure := range stream.GetFailures() {
+	// 	failures = append(failures, CheckFailure{resource.PropertyKey(failure.Property), failure.Reason})
+	// }
+
+	// logging.V(7).Infof("%s success (#ret=%d,#failures=%d) success", label, len(ret), len(failures))
+	// return ret, failures, nil
 }
 
 // GetPluginInfo returns this plugin's information.

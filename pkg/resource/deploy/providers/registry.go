@@ -28,6 +28,7 @@ import (
 	"github.com/pulumi/pulumi/pkg/util/contract"
 	"github.com/pulumi/pulumi/pkg/util/logging"
 	"github.com/pulumi/pulumi/pkg/workspace"
+	pulumirpc "github.com/pulumi/pulumi/sdk/proto/go"
 )
 
 // GetProviderVersion fetches and parses a provider version from the given property map. If the version property is not
@@ -382,6 +383,13 @@ func (r *Registry) Invoke(tok tokens.ModuleMember,
 	// registry.
 	contract.Fail()
 	return nil, nil, errors.New("the provider registry is not invokable")
+}
+
+func (r *Registry) StreamInvoke(
+	tok tokens.ModuleMember, args resource.PropertyMap,
+	stream pulumirpc.ResourceMonitor_StreamInvokeServer) (resource.PropertyMap, []plugin.CheckFailure, error) {
+
+	return nil, nil, fmt.Errorf("not implemented 3")
 }
 
 func (r *Registry) GetPluginInfo() (workspace.PluginInfo, error) {
