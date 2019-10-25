@@ -1002,6 +1002,8 @@ func (p *provider) StreamInvoke(
 			return nil, nil, err
 		}
 
+		// fmt.Println(in.GetReturn())
+
 		if err := stream.Send(in); err != nil {
 			return nil, nil, err
 		}

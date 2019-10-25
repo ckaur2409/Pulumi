@@ -20,7 +20,13 @@ import * as log from "../log";
 import { Inputs, Output } from "../output";
 import { debuggablePromise } from "./debuggable";
 import { deserializeProperties, serializeProperties } from "./rpc";
-import { excessiveDebugOutput, getMonitor, rpcKeepAlive, SyncInvokes, tryGetSyncInvokes } from "./settings";
+import {
+    excessiveDebugOutput,
+    getMonitor,
+    rpcKeepAlive,
+    SyncInvokes,
+    tryGetSyncInvokes,
+} from "./settings";
 
 import { ProviderResource, Resource } from "../resource";
 import * as utils from "../utils";
@@ -86,7 +92,11 @@ export function streamInvoke(tok: string, props: Inputs, opts: InvokeOptions = {
     return streamInvokeAsync(tok, props, opts);
 }
 
-export function invokeFallbackToAsync(tok: string, props: Inputs, opts: InvokeOptions): Promise<any> {
+export function invokeFallbackToAsync(
+    tok: string,
+    props: Inputs,
+    opts: InvokeOptions,
+): Promise<any> {
     const asyncResult = invokeAsync(tok, props, opts);
     const syncResult = utils.promiseResult(asyncResult);
     return createLiftedPromise(syncResult);
@@ -100,7 +110,11 @@ async function invokeAsync(tok: string, props: Inputs, opts: InvokeOptions): Pro
     const done = rpcKeepAlive();
     try {
         const serialized = await serializeProperties(`invoke:${tok}`, props);
-        log.debug(`Invoke RPC prepared: tok=${tok}` + excessiveDebugOutput ? `, obj=${JSON.stringify(serialized)}` : ``);
+        log.debug(
+            `Invoke RPC prepared: tok=${tok}` + excessiveDebugOutput
+                ? `, obj=${JSON.stringify(serialized)}`
+                : ``,
+        );
 
         // Fetch the monitor and make an RPC request.
         const monitor: any = getMonitor();
@@ -108,40 +122,53 @@ async function invokeAsync(tok: string, props: Inputs, opts: InvokeOptions): Pro
         const provider = await ProviderResource.register(getProvider(tok, opts));
         const req = createInvokeRequest(tok, serialized, provider, opts);
 
-        const resp: any = await debuggablePromise(new Promise((innerResolve, innerReject) =>
-            monitor.invoke(req, (err: grpc.StatusObject, innerResponse: any) => {
-                log.debug(`Invoke RPC finished: tok=${tok}; err: ${err}, resp: ${innerResponse}`);
-                if (err) {
-                    // If the monitor is unavailable, it is in the process of shutting down or has already
-                    // shut down. Don't emit an error and don't do any more RPCs, just exit.
-                    if (err.code === grpc.status.UNAVAILABLE) {
-                        log.debug("Resource monitor is terminating");
-                        process.exit(0);
-                    }
+        const resp: any = await debuggablePromise(
+            new Promise((innerResolve, innerReject) =>
+                monitor.invoke(req, (err: grpc.StatusObject, innerResponse: any) => {
+                    log.debug(
+                        `Invoke RPC finished: tok=${tok}; err: ${err}, resp: ${innerResponse}`,
+                    );
+                    if (err) {
+                        // If the monitor is unavailable, it is in the process of shutting down or has already
+                        // shut down. Don't emit an error and don't do any more RPCs, just exit.
+                        if (err.code === grpc.status.UNAVAILABLE) {
+                            log.debug("Resource monitor is terminating");
+                            process.exit(0);
+                        }
 
-                    // If the RPC failed, rethrow the error with a native exception and the message that
-                    // the engine provided - it's suitable for user presentation.
-                    innerReject(new Error(err.details));
-                }
-                else {
-                    innerResolve(innerResponse);
-                }
-            })), label);
+                        // If the RPC failed, rethrow the error with a native exception and the message that
+                        // the engine provided - it's suitable for user presentation.
+                        innerReject(new Error(err.details));
+                    } else {
+                        innerResolve(innerResponse);
+                    }
+                }),
+            ),
+            label,
+        );
 
         // Finally propagate any other properties that were given to us as outputs.
         return deserializeResponse(tok, resp);
-    }
-    finally {
+    } finally {
         done();
     }
 }
 
-function invokeSync(tok: string, props: any, opts: InvokeOptions, syncInvokes: SyncInvokes): Promise<any> {
+function invokeSync(
+    tok: string,
+    props: any,
+    opts: InvokeOptions,
+    syncInvokes: SyncInvokes,
+): Promise<any> {
     const label = `Invoking function: tok=${tok} synchronously`;
     log.debug(label + (excessiveDebugOutput ? `, props=${JSON.stringify(props)}` : ``));
 
     const serialized = serializePropertiesSync(props);
-    log.debug(`Invoke RPC prepared: tok=${tok}` + excessiveDebugOutput ? `, obj=${JSON.stringify(serialized)}` : ``);
+    log.debug(
+        `Invoke RPC prepared: tok=${tok}` + excessiveDebugOutput
+            ? `, obj=${JSON.stringify(serialized)}`
+            : ``,
+    );
 
     const providerRef = getProviderRefSync();
     const req = createInvokeRequest(tok, serialized, providerRef, opts);
@@ -157,10 +184,22 @@ function invokeSync(tok: string, props: any, opts: InvokeOptions, syncInvokes: S
 
     // Read the response.
     const respLenBytes = Buffer.alloc(4);
-    fs.readSync(syncInvokes.responses, respLenBytes, /*offset:*/ 0, /*length:*/ 4, /*position:*/ null);
+    fs.readSync(
+        syncInvokes.responses,
+        respLenBytes,
+        /*offset:*/ 0,
+        /*length:*/ 4,
+        /*position:*/ null,
+    );
     const respLen = respLenBytes.readUInt32BE(/*offset:*/ 0);
     const respBytes = Buffer.alloc(respLen);
-    fs.readSync(syncInvokes.responses, respBytes, /*offset:*/ 0, /*length:*/ respLen, /*position:*/ null);
+    fs.readSync(
+        syncInvokes.responses,
+        respBytes,
+        /*offset:*/ 0,
+        /*length:*/ respLen,
+        /*position:*/ null,
+    );
 
     // Decode the response.
     const resp = providerproto.InvokeResponse.deserializeBinary(new Uint8Array(respBytes));
@@ -177,8 +216,9 @@ function invokeSync(tok: string, props: any, opts: InvokeOptions, syncInvokes: S
 
         if (provider.__registrationId === undefined) {
             log.warn(
-`Synchronous call made to "${tok}" with an unregistered provider.
-For more details see: https://www.pulumi.com/docs/troubleshooting/#synchronous-call`);
+                `Synchronous call made to "${tok}" with an unregistered provider.
+For more details see: https://www.pulumi.com/docs/troubleshooting/#synchronous-call`,
+            );
             utils.promiseResult(ProviderResource.register(provider));
         }
 
@@ -194,7 +234,11 @@ async function streamInvokeAsync(tok: string, props: Inputs, opts: InvokeOptions
     const done = rpcKeepAlive();
     try {
         const serialized = await serializeProperties(`streamInvoke:${tok}`, props);
-        log.debug(`StreamInvoke RPC prepared: tok=${tok}` + excessiveDebugOutput ? `, obj=${JSON.stringify(serialized)}` : ``);
+        log.debug(
+            `StreamInvoke RPC prepared: tok=${tok}` + excessiveDebugOutput
+                ? `, obj=${JSON.stringify(serialized)}`
+                : ``,
+        );
 
         // Fetch the monitor and make an RPC request.
         const monitor: any = getMonitor();
@@ -202,34 +246,28 @@ async function streamInvokeAsync(tok: string, props: Inputs, opts: InvokeOptions
         const provider = await ProviderResource.register(getProvider(tok, opts));
         const req = createInvokeRequest(tok, serialized, provider, opts);
 
-        const resp: any = await debuggablePromise(new Promise((innerResolve, innerReject) =>
-            monitor.streamInvoke(req, (err: grpc.StatusObject, innerResponse: any) => {
-                log.debug(`StreamInvoke RPC finished: tok=${tok}; err: ${err}, resp: ${innerResponse}`);
-                if (err) {
-                    // If the monitor is unavailable, it is in the process of shutting down or has already
-                    // shut down. Don't emit an error and don't do any more RPCs, just exit.
-                    if (err.code === grpc.status.UNAVAILABLE) {
-                        log.debug("Resource monitor is terminating");
-                        process.exit(0);
-                    }
+        const resp: any = await debuggablePromise(
+            new Promise((innerResolve, innerReject) => {
+                const call = monitor.streamInvoke(req, {});
 
-                    // If the RPC failed, rethrow the error with a native exception and the message that
-                    // the engine provided - it's suitable for user presentation.
-                    innerReject(new Error(err.details));
-                }
-                else {
-                    innerResolve(innerResponse);
-                }
-            })), label);
+                call.on("data", function(thing: any) {
+                    const live = deserializeResponse(tok, thing);
+                    console.log(live);
+                });
+                call.on("end", (a: any) => {
+                    console.log(a);
+                    // callback();
+                });
+            }),
+            label,
+        );
 
         // Finally propagate any other properties that were given to us as outputs.
         return deserializeResponse(tok, resp);
-    }
-    finally {
+    } finally {
         done();
     }
 }
-
 
 // Expose the properties of the actual result of invoke directly on the promise itself. Note this
 // doesn't actually involve any asynchrony.  The promise will be created synchronously and the
@@ -241,7 +279,12 @@ function createLiftedPromise(value: any): Promise<any> {
     return promise;
 }
 
-function createInvokeRequest(tok: string, serialized: any, provider: string | undefined, opts: InvokeOptions) {
+function createInvokeRequest(
+    tok: string,
+    serialized: any,
+    provider: string | undefined,
+    opts: InvokeOptions,
+) {
     if (provider !== undefined && typeof provider !== "string") {
         throw new Error("Incorrect provider type.");
     }
@@ -257,22 +300,24 @@ function createInvokeRequest(tok: string, serialized: any, provider: string | un
 }
 
 function getProvider(tok: string, opts: InvokeOptions) {
-    return opts.provider ? opts.provider :
-           opts.parent ? opts.parent.getProvider(tok) : undefined;
+    return opts.provider ? opts.provider : opts.parent ? opts.parent.getProvider(tok) : undefined;
 }
 
 function serializePropertiesSync(prop: any): any {
-    if (prop === undefined ||
+    if (
+        prop === undefined ||
         prop === null ||
         typeof prop === "boolean" ||
         typeof prop === "number" ||
-        typeof prop === "string") {
-
+        typeof prop === "string"
+    ) {
         return prop;
     }
 
     if (asset.Asset.isInstance(prop) || asset.Archive.isInstance(prop)) {
-        throw new Error("Assets and Archives cannot be passed in as arguments to a data source call.");
+        throw new Error(
+            "Assets and Archives cannot be passed in as arguments to a data source call.",
+        );
     }
 
     if (prop instanceof Promise) {
