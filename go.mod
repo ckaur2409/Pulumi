@@ -7,7 +7,7 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Microsoft/go-winio v0.4.14
 	github.com/Sirupsen/logrus v1.0.5 // indirect
-	github.com/aws/aws-sdk-go v1.19.16
+	github.com/aws/aws-sdk-go v1.33.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cheggaaa/pb v1.0.18
 	github.com/cpuguy83/go-md2man v1.0.8 // indirect
@@ -18,7 +18,6 @@ require (
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/protobuf v1.3.1
 	github.com/google/go-querystring v1.0.0
-	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/mux v1.6.2
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20171105060200-01f8541d5372
 	github.com/hashicorp/go-multierror v1.0.0
@@ -31,14 +30,10 @@ require (
 	github.com/mitchellh/go-ps v0.0.0-20170309133038-4fdf99ab2936
 	github.com/mxschmitt/golang-combinations v1.0.0
 	github.com/nbutton23/zxcvbn-go v0.0.0-20171102151520-eafdab6b0663
-	github.com/onsi/ginkgo v1.7.0 // indirect
-	github.com/onsi/gomega v1.4.3 // indirect
 	github.com/opentracing/basictracer-go v1.0.0 // indirect
 	github.com/opentracing/opentracing-go v1.0.2
-	github.com/pkg/errors v0.8.1
-	github.com/reconquest/loreley v0.0.0-20160708080500-2ab6b7470a54 // indirect
+	github.com/pkg/errors v0.9.1
 	github.com/russross/blackfriday v1.5.2 // indirect
-	github.com/sabhiram/go-gitignore v0.0.0-20180611051255-d3107576ba94 // indirect
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.0.0
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
@@ -47,13 +42,13 @@ require (
 	github.com/spf13/cast v1.2.0
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3 // indirect
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify v1.5.1
 	github.com/texttheater/golang-levenshtein v0.0.0-20180516184445-d188e65d659e
 	github.com/uber/jaeger-client-go v2.15.0+incompatible
 	gocloud.dev v0.15.0
 	gocloud.dev/secrets/hashivault v0.0.0-20190724225620-1d5466654942
 	golang.org/x/crypto v0.0.0-20190422183909-d864b10871cd
-	golang.org/x/net v0.0.0-20190424112056-4829fb13d2c6
+	golang.org/x/net v0.0.0-20200202094626-16171245cfb2
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys v0.0.0-20190507160741-ecd444e8653b
 	google.golang.org/api v0.5.0
